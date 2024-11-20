@@ -37,6 +37,10 @@ OptionParser.new do |opts|
   opts.on('-v', "--verbose", "Request verbose pytest output") do
     options[:verbose] = true
   end
+
+  opts.on("--verify", "Do not run the tests but verify results using the current system tests' test code (\"replay\" mode). Only works when one test is executed") do
+    options[:verify_only] = true
+  end
 end.parse!
 
 # Verify current path is in system-tests
@@ -95,6 +99,11 @@ end
 if options[:verbose]
   run_args << " -v"
 end
+
+if options[:verify_only]
+  run_args << " --replay"
+end
+
 cmd = "./run.sh #{run_args}"
 
 puts "Executing: #{cmd}"
