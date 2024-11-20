@@ -116,9 +116,6 @@ DEBUGGER_SCENARIOS = %w,
 ,
 
 run_args = ''
-if options[:verbose]
-  run_args << " -x"
-end
 
 selected_scenarios = options[:scenarios] || if options[:debugger]
   DEBUGGER_SCENARIOS
@@ -138,6 +135,9 @@ if options[:verify_only]
 end
 
 cmd = "./run.sh #{run_args}"
+if options[:verbose]
+  cmd = "bash -x #{cmd}"
+end
 
 puts "Executing: #{cmd}"
 run(cmd)
