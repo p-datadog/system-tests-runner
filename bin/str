@@ -9,17 +9,23 @@ def run(cmd)
 end
 
 options = {
+  # Run debugger tests by default, since default test set is not useful.
+  debugger: true,
 }
 OptionParser.new do |opts|
   opts.banner = "Usage: str"
 
-  opts.on("--ruby", "Use ruby language in 'production' config") do
+  opts.on("--ruby", "Test against Ruby library's most recent release") do
     options[:ruby] = true
   end
 
-  opts.on("--ruby-dev", "Use ruby and local datadog library") do
+  opts.on("--ruby-dev", "Test against local develompent tree of Ruby library") do
     options[:ruby_dev] = true
     options[:ruby] = true
+  end
+
+  opts.on('-d', "--debugger", "Run all dynamic instrumentation / \"debugger\" tests") do
+    options[:debugger] = true
   end
 
   opts.on("-t", "--test TEST", "Specify test to run (can be used more than once)") do |v|
@@ -45,4 +51,25 @@ end
 
 run("./build.sh #{language}")
 
-run("./run.sh")
+run_args = ''
+if options[:debugger]
+  %w,
+    debugger_probes_status
+
+    debugger_method_probes_snapshot
+    debugger_line_probes_snapshot
+    debugger_mix_log_probe
+
+    debugger_pii_redaction
+
+    debugger_exception_replay
+    debugger_expression_language
+  ,.each do |scenario|
+    run_args << " +S #{scenario}"
+  end
+end
+
+cmd = "./run.sh #{run_args}"
+
+puts "Executing: #{cmd}"
+run(cmd)
