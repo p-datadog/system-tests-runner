@@ -32,6 +32,10 @@ OptionParser.new do |opts|
     options[:tests] ||= []
     options[:tests] << v
   end
+
+  opts.on('-v', "--verbose", "Request verbose pytest output") do
+    options[:verbose] = true
+  end
 end.parse!
 
 # Verify current path is in system-tests
@@ -69,6 +73,9 @@ if options[:debugger]
   end
 end
 
+if options[:verbose]
+  run_args << " -v"
+end
 cmd = "./run.sh #{run_args}"
 
 puts "Executing: #{cmd}"
