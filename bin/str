@@ -103,6 +103,10 @@ DEBUGGER_SCENARIOS = %w,
 ,
 
 run_args = ''
+if options[:verbose]
+  run_args << " -x"
+end
+
 selected_scenarios = options[:scenarios] || if options[:debugger]
   DEBUGGER_SCENARIOS
 else
