@@ -35,6 +35,11 @@ OptionParser.new do |opts|
     options.delete(:debugger)
   end
 
+  opts.on("-s", "--scenario SCENARIO", "Specify scenario to run (in any case, can be used more than once)") do |v|
+    options[:scenarios] ||= []
+    options[:scenarios] << v
+  end
+
   opts.on("-t", "--test TEST", "Specify test to run (can be used more than once)") do |v|
     options[:tests] ||= []
     options[:tests] << v
