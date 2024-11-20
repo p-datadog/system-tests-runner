@@ -1,0 +1,48 @@
+#!/usr/bin/env ruby
+
+require 'optparse'
+
+def run(cmd)
+  unless system(cmd)
+    exit(1)
+  end
+end
+
+options = {
+}
+OptionParser.new do |opts|
+  opts.banner = "Usage: str"
+
+  opts.on("--ruby", "Use ruby language in 'production' config") do
+    options[:ruby] = true
+  end
+
+  opts.on("--ruby-dev", "Use ruby and local datadog library") do
+    options[:ruby_dev] = true
+    options[:ruby] = true
+  end
+
+  opts.on("-t", "--test TEST", "Specify test to run (can be used more than once)") do |v|
+    options[:tests] ||= []
+    options[:tests] << v
+  end
+end.parse!
+
+# Verify current path is in system-tests
+unless File.exist?('run.sh') && File.exist?('manifests')
+  raise "Expected to be in system-tests"
+end
+
+language = if options[:ruby]
+  'ruby'
+else
+  raise "Language not specified"
+end
+
+if options[:ruby_dev]
+  run('rsync -av ~/apps/dtr/ binaries/dd-trace-rb --exclude .git --delete')
+end
+
+run("./build.sh #{language}")
+
+run("./run.sh")
