@@ -29,6 +29,12 @@ OptionParser.new do |opts|
     options[:debugger] = true
   end
 
+  opts.on("--debugger-pii", "Run debugger_pii_redaction scenario") do
+    options[:scenarios] ||= []
+    options[:scenarios] << 'debugger_pii_redaction'
+    options.delete(:debugger)
+  end
+
   opts.on("-t", "--test TEST", "Specify test to run (can be used more than once)") do |v|
     options[:tests] ||= []
     options[:tests] << v
@@ -78,22 +84,27 @@ Find.find('venv') do |path|
   end
 end
 
+DEBUGGER_SCENARIOS = %w,
+  debugger_probes_status
+
+  debugger_method_probes_snapshot
+  debugger_line_probes_snapshot
+  debugger_mix_log_probe
+
+  debugger_pii_redaction
+
+  debugger_exception_replay
+  debugger_expression_language
+,
+
 run_args = ''
-if options[:debugger]
-  %w,
-    debugger_probes_status
-
-    debugger_method_probes_snapshot
-    debugger_line_probes_snapshot
-    debugger_mix_log_probe
-
-    debugger_pii_redaction
-
-    debugger_exception_replay
-    debugger_expression_language
-  ,.each do |scenario|
-    run_args << " +S #{scenario}"
-  end
+selected_scenarios = options[:scenarios] || if options[:debugger]
+  DEBUGGER_SCENARIOS
+else
+  []
+end
+selected_scenarios.each do |scenario|
+  run_args << " +S #{scenario}"
 end
 
 if options[:verbose]
