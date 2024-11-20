@@ -1,5 +1,6 @@
 #!/usr/bin/env ruby
 
+autoload :Find, 'find'
 require 'optparse'
 
 def run(cmd)
@@ -54,6 +55,24 @@ if options[:ruby_dev]
 end
 
 run("./build.sh #{language}")
+
+# Patch pytest to report collected tests before running in verbose mode.
+# There is no upstream option to do so; there is apparently an option to
+# make it report the collected tests but not run anything, and we could
+# possibly use this but at an increase in runtime and then we would still
+# need to patch system tests shell scripts to request that command to be
+# executed.
+Find.find('venv') do |path|
+  if File.basename(path) == 'terminal.py' && path =~ %r,_pytest/terminal.py\z,
+    patch_path = File.realpath(File.join(File.dirname(File.realpath(__FILE__)), '../patches/pytest/terminal.py.patch'))
+    unless File.read(path).include?('system-tests-runner:')
+      puts "Patching pytest"
+      Dir.chdir(File.dirname(path)) do
+        run("patch -p1 < #{patch_path}")
+      end
+    end
+  end
+end
 
 run_args = ''
 if options[:debugger]

@@ -1,0 +1,13 @@
+--- _pytest/terminal.py.orig	2024-11-20 10:30:12.308110626 -0500
++++ _pytest/terminal.py	2024-11-20 10:33:46.075801962 -0500
+@@ -749,6 +749,10 @@
+         )
+         self._write_report_lines_from_hooks(lines)
+ 
++        # system-tests-runner: print collected tests
++        if self.config.option.verbose > 0:
++            self._printcollecteditems(session.items)
++
+         if self.config.getoption("collectonly"):
+             if session.items:
+                 if self.config.option.verbose > -1:
