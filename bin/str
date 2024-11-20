@@ -1,5 +1,6 @@
 #!/usr/bin/env ruby
 
+autoload :FileUtils, 'fileutils'
 autoload :Find, 'find'
 require 'optparse'
 
@@ -91,6 +92,13 @@ unless options[:verify_only]
         end
       end
     end
+  end
+
+  # If we are not verifying, delete existing logs.
+  Dir.entries('.').select do |entry|
+    entry =~ /\Alogs(_|\z)/
+  end.each do |entry|
+    FileUtils.rm_rf(entry)
   end
 end
 
