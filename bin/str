@@ -13,7 +13,7 @@ options = {
   debugger: true,
 }
 OptionParser.new do |opts|
-  opts.banner = "Usage: str"
+  opts.banner = "Usage: str [options]"
 
   opts.on("--ruby", "Test against Ruby library's most recent release") do
     options[:ruby] = true
