@@ -87,8 +87,8 @@ if options[:generate_forced_tests_list]
         contents = File.read(path)
         contents.scan(/@scenarios.#{scenario}([^:]+)/) do |match|
           if $1 =~ /\bclass (\w+)/
-            scenario_files[scenario] ||= []
-            scenario_files[scenario] << "#{path}::#{$1}"
+            scenario_files[scenario.upcase] ||= []
+            scenario_files[scenario.upcase] << "#{path}::#{$1}"
           end
         end
       end
