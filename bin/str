@@ -1,5 +1,6 @@
 #!/usr/bin/env ruby
 
+autoload :JSON, 'json'
 autoload :FileUtils, 'fileutils'
 autoload :Find, 'find'
 require 'optparse'
@@ -9,6 +10,19 @@ def run(cmd)
     exit(1)
   end
 end
+
+DEBUGGER_SCENARIOS = %w,
+  debugger_probes_status
+
+  debugger_method_probes_snapshot
+  debugger_line_probes_snapshot
+  debugger_mix_log_probe
+
+  debugger_pii_redaction
+
+  debugger_exception_replay
+  debugger_expression_language
+,
 
 options = {
   # Run debugger tests by default, since default test set is not useful.
@@ -53,11 +67,35 @@ OptionParser.new do |opts|
   opts.on("--verify", "Do not run the tests but verify results using the current system tests' test code (\"replay\" mode). Only works when one test is executed") do
     options[:verify_only] = true
   end
+
+  opts.on('--generate-forced-tests-list', 'Generate forced tests list') do
+    options[:generate_forced_tests_list] = true
+  end
 end.parse!
 
 # Verify current path is in system-tests
 unless File.exist?('run.sh') && File.exist?('manifests')
   raise "Expected to be in system-tests"
+end
+
+if options[:generate_forced_tests_list]
+  scenarios = DEBUGGER_SCENARIOS
+  scenario_files = {}
+  scenarios.each do |scenario|
+    Find.find('tests/debugger') do |path|
+      if File.basename(path) =~ /\Atest_debugger_.*\.py\z/
+        contents = File.read(path)
+        contents.scan(/@scenarios.#{scenario}([^:]+)/) do |match|
+          if $1 =~ /\bclass (\w+)/
+            scenario_files[scenario] ||= []
+            scenario_files[scenario] << "#{path}::#{$1}"
+          end
+        end
+      end
+    end
+  end
+  puts JSON.pretty_generate(scenario_files)
+  exit
 end
 
 language = if options[:ruby]
@@ -101,19 +139,6 @@ unless options[:verify_only]
     FileUtils.rm_rf(entry)
   end
 end
-
-DEBUGGER_SCENARIOS = %w,
-  debugger_probes_status
-
-  debugger_method_probes_snapshot
-  debugger_line_probes_snapshot
-  debugger_mix_log_probe
-
-  debugger_pii_redaction
-
-  debugger_exception_replay
-  debugger_expression_language
-,
 
 run_args = ''
 
