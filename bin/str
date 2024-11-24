@@ -152,7 +152,7 @@ selected_scenarios.each do |scenario|
 end
 
 if options[:verbose]
-  run_args << " -v"
+  run_args << " -v -s"
 end
 
 if options[:verify_only]
