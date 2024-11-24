@@ -1,5 +1,6 @@
 #!/usr/bin/env ruby
 
+autoload :YAML, 'yaml'
 autoload :JSON, 'json'
 autoload :FileUtils, 'fileutils'
 autoload :Find, 'find'
@@ -9,6 +10,18 @@ def run(cmd)
   unless system(cmd)
     exit(1)
   end
+end
+
+# Loads YAML using YAML 1.2 behavior.
+# In particular this does not map on/yes to true.
+# See https://stackoverflow.com/questions/28507195/yaml-ruby-loading-on-as-true
+# and https://stackoverflow.com/questions/36463531/pyyaml-automatically-converting-certain-keys-to-boolean-values
+def load_yaml_12(src)
+  doc = YAML.parse(src)
+  doc.select{ |node| node.is_a?(Psych::Nodes::Scalar) &&
+                   %w(on off).include?(node.value) }
+    .each{|node| node.quoted = true }
+  doc.to_ruby
 end
 
 DEBUGGER_SCENARIOS = %w,
@@ -70,6 +83,28 @@ OptionParser.new do |opts|
 
   opts.on('--generate-forced-tests-list', 'Generate forced tests list') do
     options[:generate_forced_tests_list] = true
+  end
+
+  opts.on('--crop-system-tests-to-debugger', 'Crop system tests in tracer to debugger only') do
+    doc = load_yaml_12(File.read('.github/workflows/system-tests.yml'))
+    variant = 'rails70'
+    %w(build-apps test aggregate).each do |job|
+      doc['jobs'][job]['strategy']['matrix']['app'] = [variant]
+    end
+    doc['jobs']['test']['strategy']['matrix']['scenario'] = []
+    doc['jobs']['test']['strategy']['matrix']['include'].delete_if do |spec|
+      spec['scenario'] !~ /DEBUGGER/
+    end
+    %w(cleanup).each do |job|
+      images = doc['jobs'][job]['strategy']['matrix']['image'].reject do |image|
+        image =~ /\Aweblog-/ && !image.include?(variant)
+      end
+      doc['jobs'][job]['strategy']['matrix']['image'] = images
+    end
+    File.open('.github/workflows/system-tests.yml', 'w') do |f|
+      f << YAML.dump(doc)
+    end
+    exit
   end
 end.parse!
 
