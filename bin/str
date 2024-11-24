@@ -91,7 +91,7 @@ OptionParser.new do |opts|
     %w(build-apps test aggregate).each do |job|
       doc['jobs'][job]['strategy']['matrix']['app'] = [variant]
     end
-    doc['jobs']['test']['strategy']['matrix']['scenario'] = []
+    doc['jobs']['test']['strategy']['matrix']['scenario'] = %w,DEFAULT,
     doc['jobs']['test']['strategy']['matrix']['include'].delete_if do |spec|
       spec['scenario'] !~ /DEBUGGER/
     end
