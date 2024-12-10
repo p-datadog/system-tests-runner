@@ -12,6 +12,12 @@ def run(cmd)
   end
 end
 
+def get_output(cmd)
+  IO.popen(cmd) do |io|
+    io.read
+  end
+end
+
 # Loads YAML using YAML 1.2 behavior.
 # In particular this does not map on/yes to true.
 # See https://stackoverflow.com/questions/28507195/yaml-ruby-loading-on-as-true
@@ -106,6 +112,10 @@ OptionParser.new do |opts|
     end
     exit
   end
+
+  opts.on('--show-tests', 'Show defined tests') do
+    options[:show_tests] = true
+  end
 end.parse!
 
 # Verify current path is in system-tests
@@ -136,7 +146,8 @@ end
 language = if options[:ruby]
   'ruby'
 else
-  raise "Language not specified"
+  #raise "Language not specified"
+  'ruby'
 end
 
 if options[:ruby_dev]
@@ -178,13 +189,45 @@ unless options[:verify_only]
   end
 end
 
-run_args = ''
-
 selected_scenarios = options[:scenarios] || if options[:debugger]
   DEBUGGER_SCENARIOS
 else
   []
 end
+
+if options[:show_tests]
+  run('pip install -r requirements.txt')
+  manifest_data = YAML.load(File.read('manifests/ruby.yml'))
+  #require'byebug';byebug
+  if options[:debugger]
+    manifest_data['tests/'].delete_if do |k, v|
+      k != 'debugger/'
+    end
+  end
+  test_info_path = File.join(File.dirname(File.realpath(__FILE__)), '../support/test-info.py')
+  manifest_data.each do |subdir1, subdir1_data|
+    subdir1_data.each do |subdir2, tests_data|
+      tests_data.each do |basename, test_map|
+        mod_name = [File.basename(subdir1), File.basename(subdir2), basename.sub(/\.py\z/, '')].join('.')
+        puts mod_name
+        cmd = "env PYTHONPATH=. python #{test_info_path} #{mod_name}"
+        puts(cmd)
+        info = get_output(cmd)
+        info = JSON.parse(info)
+
+        test_map.each do |cls_name, version|
+          scenario_name = info[mod_name][cls_name]['scenario']
+          test_map[cls_name] = {version: version, scenario: scenario_name}
+        end
+      end
+    end
+  end
+  pp manifest_data
+  exit
+end
+
+run_args = ''
+
 selected_scenarios.each do |scenario|
   run_args << " +S #{scenario}"
 end
