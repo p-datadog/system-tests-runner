@@ -63,6 +63,16 @@ OptionParser.new do |opts|
     options[:debugger] = true
   end
 
+  opts.on("--debugger-ruby", "Run debugger scenarios implemented in Ruby") do
+    options[:scenarios] ||= []
+    options[:scenarios] += %w,
+      DEBUGGER_PII_REDACTION
+      DEBUGGER_PROBES_SNAPSHOT
+      DEBUGGER_PROBES_STATUS
+    ,
+    options.delete(:debugger)
+  end
+
   opts.on("--debugger-pii", "Run debugger_pii_redaction scenario") do
     options[:scenarios] ||= []
     options[:scenarios] << 'debugger_pii_redaction'
