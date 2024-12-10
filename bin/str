@@ -141,6 +141,9 @@ end
 
 if options[:ruby_dev]
   run('rsync -av ~/apps/dtr/ binaries/dd-trace-rb --exclude .git --delete')
+elsif options[:ruby]
+  # A bit sketchy...
+  run('rm -rf binaries/dd-trace-rb')
 end
 
 # If we are only verifying, we do not need to build.
