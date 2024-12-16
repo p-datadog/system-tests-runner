@@ -171,6 +171,17 @@ end
 # We also do not really need to patch since there isn't too much work
 # happening during the running phase.
 unless options[:verify_only]
+  unless File.exist?('venv')
+    # I'm sure venv is created by system tests somehow...
+    # This didn't happen after I deleted it due to system tests now
+    # using Python 3.11 features.
+    # Plus from what I see in build.sh, system tests tries to use either
+    # python 3.12 or 3.9 and currently ubuntu offers 3.10 and 3.11.
+    # So, create venv manually here.
+    run('virtualenv -p python3.11 venv')
+    run('. venv/bin/activate && pip install -r requirements.txt')
+  end
+
   run("./build.sh #{language}")
 
   # Patch pytest to report collected tests before running in verbose mode.
