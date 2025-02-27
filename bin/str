@@ -231,7 +231,7 @@ if options[:show_tests]
       tests_data.each do |basename, test_map|
         mod_name = [File.basename(subdir1), File.basename(subdir2), basename.sub(/\.py\z/, '')].join('.')
         puts mod_name
-        cmd = "env PYTHONPATH=. python #{test_info_path} #{mod_name}"
+        cmd = "env PYTHONPATH=. venv/bin/python #{test_info_path} #{mod_name}"
         puts(cmd)
         info = get_output(cmd)
         info = JSON.parse(info)
