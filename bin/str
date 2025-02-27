@@ -50,6 +50,10 @@ options = {
 OptionParser.new do |opts|
   opts.banner = "Usage: str [options]"
 
+  opts.on("--rebuild", "Rebuild everything") do
+    options[:rebuild] = true
+  end
+
   opts.on("--ruby", "Test against Ruby library's most recent release") do
     options[:ruby] = true
   end
@@ -167,18 +171,32 @@ elsif options[:ruby]
   run('rm -rf binaries/dd-trace-rb')
 end
 
+def decide_python_version
+  dirs = ENV.fetch('PATH').split(':')
+  %w(3.13 3.12).each do |version|
+    dirs.each do |dir|
+      if File.exist?(File.join(dir, "python#{version}"))
+        return version
+      end
+    end
+  end
+  raise "No compatible python versions found on system"
+end
+
 # If we are only verifying, we do not need to build.
 # We also do not really need to patch since there isn't too much work
 # happening during the running phase.
 unless options[:verify_only]
-  unless File.exist?('venv')
+  if options[:rebuild] || !File.exist?('venv')
     # I'm sure venv is created by system tests somehow...
     # This didn't happen after I deleted it due to system tests now
     # using Python 3.11 features.
     # Plus from what I see in build.sh, system tests tries to use either
     # python 3.12 or 3.9 and currently ubuntu offers 3.10 and 3.11.
     # So, create venv manually here.
-    run('virtualenv -p python3.11 venv')
+    python_version = decide_python_version
+    FileUtils.rm_rf('venv')
+    run("virtualenv -p python#{python_version} venv")
     run('. venv/bin/activate && pip install -r requirements.txt')
   end
 
