@@ -130,11 +130,29 @@ OptionParser.new do |opts|
   opts.on('--show-tests', 'Show defined tests') do
     options[:show_tests] = true
   end
+
+  opts.on('--builder-help', 'Show system tests builder help') do
+    options[:builder_help] = true
+  end
+
+  opts.on('--runner-help', 'Show system tests runner help') do
+    options[:runner_help] = true
+  end
 end.parse!
 
 # Verify current path is in system-tests
 unless File.exist?('run.sh') && File.exist?('manifests')
   raise "Expected to be in system-tests"
+end
+
+if options[:builder_help]
+  run("./build.sh -h")
+  exit
+end
+
+if options[:runner_help]
+  run("./run.sh +h")
+  exit
 end
 
 if options[:generate_forced_tests_list]
