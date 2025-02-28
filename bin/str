@@ -63,6 +63,10 @@ OptionParser.new do |opts|
     options[:ruby] = true
   end
 
+  opts.on('-V', '--variant=VARIANT', 'Specify weblog variant') do |v|
+    options[:weblog_variant] = v
+  end
+
   opts.on('-d', "--debugger", "Run all dynamic instrumentation / \"debugger\" tests") do
     options[:debugger] = true
   end
@@ -107,7 +111,7 @@ OptionParser.new do |opts|
 
   opts.on('--crop-system-tests-to-debugger', 'Crop system tests in tracer to debugger only') do
     doc = load_yaml_12(File.read('.github/workflows/system-tests.yml'))
-    variant = 'rails70'
+    variant = (options[:weblog_variant] ||= 'rails70')
     %w(build-apps test aggregate).each do |job|
       doc['jobs'][job]['strategy']['matrix']['app'] = [variant]
     end
@@ -218,7 +222,8 @@ unless options[:verify_only]
     run('. venv/bin/activate && pip install -r requirements.txt')
   end
 
-  run("./build.sh #{language}")
+  variant = options[:weblog_variant] || 'rails70'
+  run("./build.sh --weblog-variant #{variant} #{language}")
 
   # Patch pytest to report collected tests before running in verbose mode.
   # There is no upstream option to do so; there is apparently an option to
