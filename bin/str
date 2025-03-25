@@ -44,8 +44,6 @@ DEBUGGER_SCENARIOS = %w,
 ,
 
 options = {
-  # Run debugger tests by default, since default test set is not useful.
-  debugger: true,
 }
 OptionParser.new do |opts|
   opts.banner = "Usage: str [options]"
@@ -144,6 +142,11 @@ OptionParser.new do |opts|
   end
 end.parse!
 
+unless options[:tests]
+  # Run debugger tests by default, since default test set is not useful.
+  options[:debugger] = true
+end
+
 # Verify current path is in system-tests
 unless File.exist?('run.sh') && File.exist?('manifests')
   raise "Expected to be in system-tests"
@@ -212,7 +215,7 @@ unless options[:verify_only]
   if options[:rebuild] || !File.exist?('venv')
     # I'm sure venv is created by system tests somehow...
     # This didn't happen after I deleted it due to system tests now
-    # using Python 3.11 features.
+    # using Python 3.11+ features.
     # Plus from what I see in build.sh, system tests tries to use either
     # python 3.12 or 3.9 and currently ubuntu offers 3.10 and 3.11.
     # So, create venv manually here.
@@ -292,6 +295,13 @@ run_args = ''
 
 selected_scenarios.each do |scenario|
   run_args << " +S #{scenario}"
+end
+
+if tests = options[:tests]
+  tests.each do |test|
+    # TODO figure out the scenarios used by the test and enable those
+    run_args << " #{test}"
+  end
 end
 
 if options[:verbose]
