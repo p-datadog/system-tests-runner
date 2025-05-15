@@ -8,6 +8,7 @@ require 'optparse'
 
 def run(cmd)
   unless system(cmd)
+    puts "Failed to run: #{cmd}"
     exit(1)
   end
 end
