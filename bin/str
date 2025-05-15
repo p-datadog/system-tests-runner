@@ -90,7 +90,7 @@ OptionParser.new do |opts|
     options[:scenarios] << v
   end
 
-  opts.on("-t", "--test TEST", "Specify test to run (can be used more than once)") do |v|
+  opts.on("-t", "--test-file TEST", "Specify test file to run (can be used more than once)") do |v|
     options[:tests] ||= []
     options[:tests] << v
   end
