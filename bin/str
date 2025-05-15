@@ -299,8 +299,25 @@ selected_scenarios.each do |scenario|
 end
 
 if tests = options[:tests]
+  add_scenarios = options[:scenarios].nil?
   tests.each do |test|
-    # TODO figure out the scenarios used by the test and enable those
+    if add_scenarios
+      if File.exist?(test)
+        File.open(test) do |f|
+          f.each_line do |line|
+            if line =~ /\A@scenarios.(\w+)/
+              options[:scenarios] ||= []
+              unless options[:scenarios].include?($1)
+                options[:scenarios] << $1
+                puts "adding scenario #{$1} for test file #{test}"
+              end
+            end
+          end
+        end
+      else
+        warn "file does not exist: #{test}"
+      end
+    end
     run_args << " #{test}"
   end
 end

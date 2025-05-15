@@ -26,3 +26,4 @@ setup phase (thus the list of tests is available without having to wait for
 the test run to complete).
 - Convenient shortcuts for debugger system tests and other commonly used
 options.
+- Automatically sets scenarios to run based on requested test files
