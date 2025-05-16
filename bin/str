@@ -294,10 +294,6 @@ end
 
 run_args = ''
 
-selected_scenarios.each do |scenario|
-  run_args << " +S #{scenario}"
-end
-
 if tests = options[:tests]
   add_scenarios = options[:scenarios].nil?
   tests.each do |test|
@@ -307,8 +303,8 @@ if tests = options[:tests]
           f.each_line do |line|
             if line =~ /\A@scenarios.(\w+)/
               options[:scenarios] ||= []
-              unless options[:scenarios].include?($1)
-                options[:scenarios] << $1
+              unless selected_scenarios.include?($1)
+                selected_scenarios << $1
                 puts "adding scenario #{$1} for test file #{test}"
               end
             end
@@ -320,6 +316,10 @@ if tests = options[:tests]
     end
     run_args << " #{test}"
   end
+end
+
+selected_scenarios.each do |scenario|
+  run_args << " +S #{scenario}"
 end
 
 if options[:verbose]
