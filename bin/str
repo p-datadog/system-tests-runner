@@ -145,6 +145,7 @@ end.parse!
 
 unless options[:tests]
   # Run debugger tests by default, since default test set is not useful.
+  warn 'scoping testst to debugger since none were requested'
   options[:debugger] = true
 end
 
@@ -260,6 +261,7 @@ selected_scenarios = options[:scenarios] || if options[:debugger]
 else
   []
 end
+selected_scenarios = Set.new(selected_scenarios)
 
 if options[:show_tests]
   run('pip install -r requirements.txt')
@@ -310,6 +312,7 @@ if parametric
   #end
 end
 
+scenarios_added = false
 if tests = options[:tests]
   add_scenarios = options[:scenarios].nil?
   tests.each do |test|
@@ -322,6 +325,7 @@ if tests = options[:tests]
               unless selected_scenarios.include?($1)
                 selected_scenarios << $1
                 puts "adding scenario #{$1} for test file #{test}"
+                scenarios_added = true
               end
             end
           end
@@ -332,6 +336,14 @@ if tests = options[:tests]
     end
     run_args << " #{test}"
   end
+end
+
+if scenarios_added
+  selected_scenarios << 'default'
+end
+if selected_scenarios.include?('default')
+  selected_scenarios.delete('default')
+  selected_scenarios = %w,default, + selected_scenarios.to_a
 end
 
 selected_scenarios.each do |scenario|
