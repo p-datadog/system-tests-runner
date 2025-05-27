@@ -294,6 +294,22 @@ end
 
 run_args = ''
 
+parametric = options[:tests]&.any? do |test|
+  test =~ %r,\Atests/parametric/,
+end
+=begin not needed?
+if parametric
+  run_args << ' PARAMETRIC'
+end
+=end
+
+if parametric
+  # TODO handle other languages?
+  #if options[:ruby]
+    run_args << ' -L ruby'
+  #end
+end
+
 if tests = options[:tests]
   add_scenarios = options[:scenarios].nil?
   tests.each do |test|
