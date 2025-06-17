@@ -236,17 +236,16 @@ unless options[:verify_only]
     run('. venv/bin/activate && pip install -r requirements.txt')
   end
 
-  variant = case language
-  when 'ruby'
-    options[:weblog_variant] || 'rails70'
-  else
-    nil
+  variant = options[:weblog_variant] || if options[:ruby]
+    'rails70'
   end
-  cmd = "./build.sh"
   if variant
-    cmd << " --weblog-variant #{variant}"
+    variant = "--weblog-variant #{variant}"
   end
-  cmd << " #{language}"
+  cmd = "./build.sh #{variant} #{language}"
+  if options[:verbose]
+    puts "Run: #{cmd}"
+  end
   run(cmd)
 
   # Patch pytest to report collected tests before running in verbose mode.
