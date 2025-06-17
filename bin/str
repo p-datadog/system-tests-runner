@@ -388,6 +388,19 @@ if tests = options[:tests]
   end
 end
 
+# TODO this isn't working.
+# ST runs each scenario separately.
+# pytest fails if a scenario has no enabled tests.
+# This means we cannot simply add default scenario, we need to only
+# do so if there is at least one test that doesn't have a scenario
+# specified.
+#
+# Note also that when a scenario skips everything we don't get the
+# output of all tests that exist, making troubleshooting even more
+# obnoxious.
+#
+# And ST breaks pytest's feature to show collected tests.
+=begin
 if scenarios_added
   selected_scenarios << 'default'
 end
@@ -395,6 +408,7 @@ if selected_scenarios.include?('default')
   selected_scenarios.delete('default')
   selected_scenarios = %w,default, + selected_scenarios.to_a
 end
+=end
 
 selected_scenarios.each do |scenario|
   run_args << " +S #{scenario}"
