@@ -67,6 +67,10 @@ OptionParser.new do |opts|
     options[:language] = 'ruby'
   end
 
+  opts.on("--python", "Test against Python tracer") do
+    options[:language] = 'python'
+  end
+
   opts.on('-V', '--variant=VARIANT', 'Specify weblog variant') do |v|
     options[:weblog_variant] = v
   end
