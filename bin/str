@@ -296,6 +296,9 @@ if options[:show_tests]
         cmd = "env PYTHONPATH=. venv/bin/python #{test_info_path} #{mod_name}"
         puts(cmd)
         info = get_output(cmd)
+        if $?.exitstatus != 0
+          raise "Failed to run: #{cmd}"
+        end
         info = JSON.parse(info)
 
         test_map.each do |cls_name, version|
