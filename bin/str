@@ -288,8 +288,37 @@ if options[:show_tests]
     end
   end
   test_info_path = File.join(File.dirname(File.realpath(__FILE__)), '../support/test-info.py')
+  pp manifest_data
+  Find.find('tests') do |path|
+    if %w(test_the_test __pycache__).include?(File.basename(path))
+      Find.prune
+    end
+
+    next unless File.file?(path) && File.basename(path).start_with?('test_')
+
+    rel_path = path[6..]
+    basename = File.basename(path)
+    comps = File.dirname(path).split('/').map { |part| part + '/' } + [basename]
+    test_map = manifest_data.dig(*comps)
+    mod_name = rel_path.sub(%r,\.py\z,, '').split('/').join('.')
+
+    cmd = "env PYTHONPATH=tests venv/bin/python #{test_info_path} #{mod_name}"
+    puts(cmd)
+    info = get_output(cmd)
+    if $?.exitstatus != 0
+      raise "Failed to run: #{cmd}"
+    end
+    info = JSON.parse(info)
+
+    test_map.each do |cls_name, version|
+      scenario_name = info[mod_name][cls_name]['scenario']
+      test_map[cls_name] = {version: version, scenario: scenario_name}
+    end
+  end
+=begin
   manifest_data.each do |subdir1, subdir1_data|
     subdir1_data.each do |subdir2, tests_data|
+    pp tests_data
       tests_data.each do |basename, test_map|
         mod_name = [File.basename(subdir1), File.basename(subdir2), basename.sub(/\.py\z/, '')].join('.')
         puts mod_name
@@ -309,6 +338,7 @@ if options[:show_tests]
     end
   end
   pp manifest_data
+=end
   exit
 end
 

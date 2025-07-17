@@ -2,10 +2,14 @@
 
 import sys, re, json
 
+class Library(str):
+    def __init__(self, value):
+        self.name = value
+
 from utils import context
 class FakeScenario:
     def __init__(self):
-        self.library = 'ruby'
+        self.library = Library('ruby')
 context.scenario = FakeScenario()
 
 info = {}
@@ -17,10 +21,11 @@ info[mod_name] = {}
 for cls_name in dir(mod):
     if re.match('Test_', cls_name):
         cls = getattr(mod, cls_name)
-        for mark in cls.pytestmark:
-            if mark.name == 'scenario':
-                info[mod_name][cls_name] = {
-                    'scenario': mark.args[0],
-                }
+        if hasattr(cls, 'pytestmark'):
+            for mark in cls.pytestmark:
+                if mark.name == 'scenario':
+                    info[mod_name][cls_name] = {
+                        'scenario': mark.args[0],
+                    }
 
 print(json.dumps(info))
