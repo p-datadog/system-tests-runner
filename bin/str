@@ -53,13 +53,18 @@ OptionParser.new do |opts|
     options[:rebuild] = true
   end
 
+  opts.on('-L', "--language=LANG", "Test against tracer in specified language") do |v|
+    options[:language] = v
+  end
+
   opts.on("--ruby", "Test against Ruby library's most recent release") do
-    options[:ruby] = true
+    options[:language] = 'ruby'
+    options.delete(:dev)
   end
 
   opts.on("--ruby-dev", "Test against local develompent tree of Ruby library") do
-    options[:ruby_dev] = true
-    options[:ruby] = true
+    options[:dev] = true
+    options[:language] = 'ruby'
   end
 
   opts.on('-V', '--variant=VARIANT', 'Specify weblog variant') do |v|
@@ -184,18 +189,18 @@ if options[:generate_forced_tests_list]
   exit
 end
 
-language = if options[:ruby]
-  'ruby'
-else
-  #raise "Language not specified"
-  'ruby'
+language = options[:language] || 'ruby'
+if language == 'node'
+  language = 'nodejs'
 end
 
-if options[:ruby_dev]
-  run('rsync -av ~/apps/dtr/ binaries/dd-trace-rb --exclude .git --delete')
-elsif options[:ruby]
-  # A bit sketchy...
-  run('rm -rf binaries/dd-trace-rb')
+if language == 'ruby'
+  if options[:dev]
+    run('rsync -av ~/apps/dtr/ binaries/dd-trace-rb --exclude .git --delete')
+  elsif
+    # A bit sketchy...
+    run('rm -rf binaries/dd-trace-rb')
+  end
 end
 
 def decide_python_version
@@ -227,8 +232,18 @@ unless options[:verify_only]
     run('. venv/bin/activate && pip install -r requirements.txt')
   end
 
-  variant = options[:weblog_variant] || 'rails70'
-  run("./build.sh --weblog-variant #{variant} #{language}")
+  variant = case language
+  when 'ruby'
+    options[:weblog_variant] || 'rails70'
+  else
+    nil
+  end
+  cmd = "./build.sh"
+  if variant
+    cmd << " --weblog-variant #{variant}"
+  end
+  cmd << " #{language}"
+  run(cmd)
 
   # Patch pytest to report collected tests before running in verbose mode.
   # There is no upstream option to do so; there is apparently an option to
@@ -306,10 +321,9 @@ end
 =end
 
 if parametric
-  # TODO handle other languages?
-  #if options[:ruby]
-    run_args << ' -L ruby'
-  #end
+  run_args << " -L #{language}"
+else
+  run_args << " --library #{language}"
 end
 
 scenarios_added = false
