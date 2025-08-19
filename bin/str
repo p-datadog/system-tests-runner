@@ -123,7 +123,7 @@ OptionParser.new do |opts|
 
   opts.on('--crop-system-tests-to-debugger', 'Crop system tests in tracer to debugger only') do
     doc = load_yaml_12(File.read('.github/workflows/system-tests.yml'))
-    variant = (options[:weblog_variant] ||= 'rails70')
+    variant = (options[:weblog_variant] ||= 'rails80')
     %w(build-apps test aggregate).each do |job|
       doc['jobs'][job]['strategy']['matrix']['app'] = [variant]
     end
@@ -241,7 +241,7 @@ unless options[:verify_only]
   end
 
   variant = options[:weblog_variant] || if options[:ruby]
-    'rails70'
+    'rails80'
   end
   if variant
     variant = "--weblog-variant #{variant}"
