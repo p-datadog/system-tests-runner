@@ -71,6 +71,10 @@ OptionParser.new do |opts|
     options[:language] = 'python'
   end
 
+  opts.on("--java", "Test against Java tracer") do
+    options[:language] = 'java'
+  end
+
   opts.on('-V', '--variant=VARIANT', 'Specify weblog variant') do |v|
     options[:weblog_variant] = v
   end
