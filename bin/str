@@ -464,6 +464,7 @@ end
 
 if options[:verbose]
   run_args << " -v -s"
+  ENV['STR_VERBOSE'] = '1'
 end
 
 if options[:verify_only]
