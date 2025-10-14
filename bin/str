@@ -290,6 +290,28 @@ else
 end
 selected_scenarios = Set.new(selected_scenarios)
 
+def all_tests
+  tests = []
+  Find.find('tests') do |path|
+    if %w(test_the_test __pycache__).include?(File.basename(path))
+      Find.prune
+    end
+
+    next unless File.file?(path) && File.basename(path).start_with?('test_')
+
+    if block_given?
+      yield path
+    else
+      tests << path
+    end
+  end
+  if block_given?
+    nil
+  else
+    tests
+  end
+end
+
 if options[:show_tests]
   run('venv/bin/pip install -r requirements.txt')
   manifest_data = YAML.load(File.read('manifests/ruby.yml'))
@@ -301,13 +323,7 @@ if options[:show_tests]
   end
   test_info_path = File.join(File.dirname(File.realpath(__FILE__)), '../support/test-info.py')
   pp manifest_data
-  Find.find('tests') do |path|
-    if %w(test_the_test __pycache__).include?(File.basename(path))
-      Find.prune
-    end
-
-    next unless File.file?(path) && File.basename(path).start_with?('test_')
-
+  all_tests do |path|
     rel_path = path[6..]
     basename = File.basename(path)
     comps = File.dirname(path).split('/').map { |part| part + '/' } + [basename]
@@ -355,6 +371,29 @@ if options[:show_tests]
 end
 
 run_args = ''
+
+# --show-tests outputs test file basenames, but here we need paths.
+# Try to convert - if there is only one path matching the basename,
+# replace the basename with a path. If a test does not exist, fail here
+# rather than after system tests does a bunch of useless work.
+options[:tests]&.map! do |test|
+  unless File.exist?(test)
+    if File.basename(test) == test
+      eligible = all_tests.select do |candidate|
+        File.basename(candidate) == test
+      end
+      if eligible.length == 1
+        warn "Using #{eligible.first} instead of #{test}"
+        test = eligible.first
+      end
+    end
+
+    unless File.exist?(test)
+      raise "Test does not exist: #{test}"
+    end
+  end
+  test
+end
 
 parametric = options[:tests]&.any? do |test|
   test =~ %r,\Atests/parametric/,
