@@ -241,17 +241,18 @@ if options[:build] != false && !options[:verify_only]
     python_version = decide_python_version
     FileUtils.rm_rf('venv')
     run("virtualenv -p python#{python_version} venv")
-    run('. venv/bin/activate && pip install -r requirements.txt')
+    run('. venv/bin/activate && venv/bin/pip install -r requirements.txt --break-system-packages')
   end
 
   variant = options[:weblog_variant] || if options[:ruby]
     'rails80'
   end
-  if variant
-    variant = "--weblog-variant #{variant}"
+  variant_option = if variant
+    "--weblog-variant #{variant}"
   end
-  cmd = "./build.sh #{variant} #{language}"
+  cmd = "./utils/build/build.sh #{variant_option} #{language}"
   if options[:verbose]
+    cmd = "bash -x #{cmd}"
     puts "Run: #{cmd}"
   end
   run(cmd)
@@ -290,7 +291,7 @@ end
 selected_scenarios = Set.new(selected_scenarios)
 
 if options[:show_tests]
-  run('pip install -r requirements.txt')
+  run('venv/bin/pip install -r requirements.txt')
   manifest_data = YAML.load(File.read('manifests/ruby.yml'))
   #require'byebug';byebug
   if options[:debugger]
