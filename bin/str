@@ -154,6 +154,10 @@ OptionParser.new do |opts|
   opts.on('--runner-help', 'Show system tests runner help') do
     options[:runner_help] = true
   end
+
+  opts.on('--no-build', 'Do not build images - use previously built onse') do
+    options[:build] = false
+  end
 end.parse!
 
 unless options[:tests]
@@ -226,7 +230,7 @@ end
 # If we are only verifying, we do not need to build.
 # We also do not really need to patch since there isn't too much work
 # happening during the running phase.
-unless options[:verify_only]
+if options[:build] != false && !options[:verify_only]
   if options[:rebuild] || !File.exist?('venv')
     # I'm sure venv is created by system tests somehow...
     # This didn't happen after I deleted it due to system tests now
