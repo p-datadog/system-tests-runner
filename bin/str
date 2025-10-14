@@ -312,66 +312,6 @@ def all_tests
   end
 end
 
-if options[:show_tests]
-  run('venv/bin/pip install -r requirements.txt')
-  manifest_data = YAML.load(File.read('manifests/ruby.yml'))
-  #require'byebug';byebug
-  if options[:debugger]
-    manifest_data['tests/'].delete_if do |k, v|
-      k != 'debugger/'
-    end
-  end
-  test_info_path = File.join(File.dirname(File.realpath(__FILE__)), '../support/test-info.py')
-  pp manifest_data
-  all_tests do |path|
-    rel_path = path[6..]
-    basename = File.basename(path)
-    comps = File.dirname(path).split('/').map { |part| part + '/' } + [basename]
-    test_map = manifest_data.dig(*comps)
-    mod_name = rel_path.sub(%r,\.py\z,, '').split('/').join('.')
-
-    cmd = "env PYTHONPATH=tests venv/bin/python #{test_info_path} #{mod_name}"
-    puts(cmd)
-    info = get_output(cmd)
-    if $?.exitstatus != 0
-      raise "Failed to run: #{cmd}"
-    end
-    info = JSON.parse(info)
-
-    test_map.each do |cls_name, version|
-      scenario_name = info[mod_name][cls_name]['scenario']
-      test_map[cls_name] = {version: version, scenario: scenario_name}
-    end
-  end
-=begin
-  manifest_data.each do |subdir1, subdir1_data|
-    subdir1_data.each do |subdir2, tests_data|
-    pp tests_data
-      tests_data.each do |basename, test_map|
-        mod_name = [File.basename(subdir1), File.basename(subdir2), basename.sub(/\.py\z/, '')].join('.')
-        puts mod_name
-        cmd = "env PYTHONPATH=. venv/bin/python #{test_info_path} #{mod_name}"
-        puts(cmd)
-        info = get_output(cmd)
-        if $?.exitstatus != 0
-          raise "Failed to run: #{cmd}"
-        end
-        info = JSON.parse(info)
-
-        test_map.each do |cls_name, version|
-          scenario_name = info[mod_name][cls_name]['scenario']
-          test_map[cls_name] = {version: version, scenario: scenario_name}
-        end
-      end
-    end
-  end
-  pp manifest_data
-=end
-  exit
-end
-
-run_args = ''
-
 # --show-tests outputs test file basenames, but here we need paths.
 # Try to convert - if there is only one path matching the basename,
 # replace the basename with a path. If a test does not exist, fail here
@@ -394,6 +334,89 @@ options[:tests]&.map! do |test|
   end
   test
 end
+
+if options[:show_tests]
+  run('venv/bin/pip install -r requirements.txt')
+  manifest_data = YAML.load(File.read('manifests/ruby.yml'))
+  #require'byebug';byebug
+  if options[:debugger]
+    manifest_data['tests/'].delete_if do |k, v|
+      k != 'debugger/'
+    end
+  end
+  test_info_path = File.join(File.dirname(File.realpath(__FILE__)), '../support/test-info.py')
+  pp manifest_data
+  all_tests do |path|
+    if selected_tests = options[:tests]
+      unless selected_tests.include?(path)
+        next
+      end
+    end
+
+    rel_path = path[6..]
+    basename = File.basename(path)
+    comps = File.dirname(path).split('/').map { |part| part + '/' } + [basename]
+    test_map = manifest_data.dig(*comps)
+    unless test_map
+      warn "Test not in manifest? #{comps.join}"
+      next
+    end
+    unless Hash === test_map
+      # TODO test_map can be "missing_feature", this should be handled
+      raise "Test map is not a hash: #{test_map}"
+    end
+    mod_name = rel_path.sub(%r,\.py\z,, '').split('/').join('.')
+
+    # TODO this is very slow, unusable for the entire ST repo
+    cmd = "env PYTHONPATH=tests venv/bin/python #{test_info_path} #{mod_name}"
+    puts(cmd)
+    info = get_output(cmd)
+    if $?.exitstatus != 0
+      raise "Failed to run: #{cmd}"
+    end
+    info = JSON.parse(info)
+
+    test_map.each do |cls_name, version|
+      mod_info = info[mod_name]
+      cls_info = mod_info[cls_name]
+      unless cls_info
+        warn "Missing class #{cls_name}"
+        next
+      end
+      scenario_name = cls_info['scenario']
+      test_map[cls_name] = {version: version, scenario: scenario_name}
+    end
+  end
+
+=begin
+  manifest_data.each do |subdir1, subdir1_data|
+    subdir1_data.each do |subdir2, tests_data|
+    pp tests_data
+      tests_data.each do |basename, test_map|
+        mod_name = [File.basename(subdir1), File.basename(subdir2), basename.sub(/\.py\z/, '')].join('.')
+        puts mod_name
+        cmd = "env PYTHONPATH=. venv/bin/python #{test_info_path} #{mod_name}"
+        puts(cmd)
+        info = get_output(cmd)
+        if $?.exitstatus != 0
+          raise "Failed to run: #{cmd}"
+        end
+        info = JSON.parse(info)
+
+        test_map.each do |cls_name, version|
+          scenario_name = info[mod_name][cls_name]['scenario']
+          test_map[cls_name] = {version: version, scenario: scenario_name}
+        end
+      end
+    end
+  end
+=end
+  # TODO scope to options[:tests] if provided
+  pp manifest_data
+  exit
+end
+
+run_args = ''
 
 parametric = options[:tests]&.any? do |test|
   test =~ %r,\Atests/parametric/,
