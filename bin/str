@@ -109,6 +109,10 @@ OptionParser.new do |opts|
     options[:tests] << v
   end
 
+  opts.on('-m', '--test-method METHOD', 'Specify test method or pattern to execute') do |v|
+    options[:test_method] = v
+  end
+
   opts.on('-v', "--verbose", "Request verbose pytest output") do
     options[:verbose] = true
   end
@@ -492,6 +496,10 @@ end
 
 if options[:verify_only]
   run_args << " --replay"
+end
+
+if method = options[:test_method]
+  run_args << " -k #{method}"
 end
 
 cmd = "./run.sh #{run_args}"
