@@ -53,6 +53,10 @@ OptionParser.new do |opts|
     options[:rebuild] = true
   end
 
+  opts.on("--build-only", "Only build, do not run tests") do
+    options[:build_only] = true
+  end
+
   opts.on('-L', "--language=LANG", "Test against tracer in specified language") do |v|
     options[:language] = v
   end
@@ -286,6 +290,8 @@ if options[:build] != false && !options[:verify_only]
     FileUtils.rm_rf(entry)
   end
 end
+
+exit if options[:build_only]
 
 selected_scenarios = options[:scenarios] || if options[:debugger]
   DEBUGGER_SCENARIOS
