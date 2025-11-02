@@ -347,7 +347,7 @@ end
 
 if options[:show_tests]
   run('venv/bin/pip install -r requirements.txt')
-  manifest_data = YAML.load(File.read('manifests/ruby.yml'))
+  manifest_data = YAML.load(File.read("manifests/#{language}.yml"))
   #require'byebug';byebug
   if options[:debugger]
     manifest_data['tests/'].delete_if do |k, v|
@@ -368,7 +368,12 @@ if options[:show_tests]
     comps = File.dirname(path).split('/').map { |part| part + '/' } + [basename]
     test_map = manifest_data.dig(*comps)
     unless test_map
+      # I think these are used to test ST itself
       warn "Test not in manifest? #{comps.join}"
+      next
+    end
+    if test_map == 'missing_feature'
+      # Not applicable to the current language, skip
       next
     end
     unless Hash === test_map
@@ -390,6 +395,11 @@ if options[:show_tests]
       mod_info = info[mod_name]
       cls_info = mod_info[cls_name]
       unless cls_info
+        if info.key?(mod_name) && mod_info.empty?
+          # No configurations defined in manifest for the test case,
+          # skip silently.
+          next
+        end
         warn "Missing class #{cls_name}"
         next
       end
