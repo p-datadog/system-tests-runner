@@ -326,13 +326,15 @@ class TestFile
 end
 
 class TestClass
-  def initialize(name:, scenario:)
+  def initialize(name:, scenario:, test_methods:)
     @name = name
     @scenario = scenario
+    @test_methods = test_methods
   end
 
   attr_reader :name
   attr_reader :scenario
+  attr_reader :test_methods
 end
 
 def all_tests
@@ -421,11 +423,14 @@ if options[:show_tests]
     next unless this_info
 
     test.test_classes = this_info.map do |cls_name, meta|
-      TestClass.new(name: cls_name, scenario: meta.fetch('scenario'))
+      TestClass.new(name: cls_name, scenario: meta.fetch('scenario'), test_methods: meta['methods'])
     end
 
     test.test_classes.each do |cls|
       puts "#{test.path}::#{cls.name} scenario: #{cls.scenario}"
+      cls.test_methods.each do |meth|
+        puts "  #{meth}"
+      end
     end
   end
   exit
