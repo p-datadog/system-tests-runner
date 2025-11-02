@@ -300,25 +300,54 @@ else
 end
 selected_scenarios = Set.new(selected_scenarios)
 
-def all_tests
-  tests = []
-  Find.find('tests') do |path|
-    if %w(test_the_test __pycache__).include?(File.basename(path))
-      Find.prune
-    end
+class TestFile
+  def initialize(path:)
+    @path = path
+  end
 
-    next unless File.file?(path) && File.basename(path).start_with?('test_')
+  attr_reader :path
 
-    if block_given?
-      yield path
-    else
-      tests << path
+  def rel_path
+    path[6..]
+  end
+
+  def comps
+    @comps ||= begin
+      basename = File.basename(path)
+      comps = File.dirname(path).split('/').map { |part| part + '/' } + [basename]
     end
   end
-  if block_given?
-    nil
-  else
-    tests
+
+  def python_mod_name
+    mod_name = rel_path.sub(%r,\.py\z,, '').split('/').join('.')
+  end
+
+  attr_accessor :test_classes
+end
+
+class TestClass
+  def initialize(name:, scenario:)
+    @name = name
+    @scenario = scenario
+  end
+
+  attr_reader :name
+  attr_reader :scenario
+end
+
+def all_tests
+  @all_tests ||= [].tap do |tests|
+    Find.find('tests') do |path|
+      if %w(test_the_test __pycache__).include?(File.basename(path))
+        Find.prune
+      end
+
+      next unless File.file?(path) && File.basename(path).start_with?('test_')
+
+      test = TestFile.new(path: path)
+
+      tests << test
+    end
   end
 end
 
@@ -348,31 +377,26 @@ end
 if options[:show_tests]
   run('venv/bin/pip install -r requirements.txt')
   manifest_data = YAML.load(File.read("manifests/#{language}.yml"))
-  #require'byebug';byebug
   if options[:debugger]
     manifest_data['tests/'].delete_if do |k, v|
       k != 'debugger/'
     end
   end
   test_info_path = File.join(File.dirname(File.realpath(__FILE__)), '../support/test-info.py')
-  pp manifest_data
-  all_tests do |path|
+  mod_names = all_tests.map do |test|
     if selected_tests = options[:tests]
-      unless selected_tests.include?(path)
+      unless selected_tests.include?(test.path)
         next
       end
     end
 
-    rel_path = path[6..]
-    basename = File.basename(path)
-    comps = File.dirname(path).split('/').map { |part| part + '/' } + [basename]
-    test_map = manifest_data.dig(*comps)
+    test_map = manifest_data.dig(*test.comps)
     unless test_map
       # I think these are used to test ST itself
-      warn "Test not in manifest? #{comps.join}"
+      warn "Test not in manifest? #{test.comps.join}"
       next
     end
-    if test_map == 'missing_feature'
+    if String === test_map && test_map =~ /\Amissing_feature\b/
       # Not applicable to the current language, skip
       next
     end
@@ -380,59 +404,30 @@ if options[:show_tests]
       # TODO test_map can be "missing_feature", this should be handled
       raise "Test map is not a hash: #{test_map}"
     end
-    mod_name = rel_path.sub(%r,\.py\z,, '').split('/').join('.')
 
-    # TODO this is very slow, unusable for the entire ST repo
-    cmd = "env PYTHONPATH=tests venv/bin/python #{test_info_path} #{mod_name}"
-    puts(cmd)
-    info = get_output(cmd)
-    if $?.exitstatus != 0
-      raise "Failed to run: #{cmd}"
-    end
-    info = JSON.parse(info)
-
-    test_map.each do |cls_name, version|
-      mod_info = info[mod_name]
-      cls_info = mod_info[cls_name]
-      unless cls_info
-        if info.key?(mod_name) && mod_info.empty?
-          # No configurations defined in manifest for the test case,
-          # skip silently.
-          next
-        end
-        warn "Missing class #{cls_name}"
-        next
-      end
-      scenario_name = cls_info['scenario']
-      test_map[cls_name] = {version: version, scenario: scenario_name}
-    end
+    test.python_mod_name
   end
 
-=begin
-  manifest_data.each do |subdir1, subdir1_data|
-    subdir1_data.each do |subdir2, tests_data|
-    pp tests_data
-      tests_data.each do |basename, test_map|
-        mod_name = [File.basename(subdir1), File.basename(subdir2), basename.sub(/\.py\z/, '')].join('.')
-        puts mod_name
-        cmd = "env PYTHONPATH=. venv/bin/python #{test_info_path} #{mod_name}"
-        puts(cmd)
-        info = get_output(cmd)
-        if $?.exitstatus != 0
-          raise "Failed to run: #{cmd}"
-        end
-        info = JSON.parse(info)
+  cmd = "env PYTHONPATH=tests venv/bin/python #{test_info_path} #{mod_names.join(' ')}"
+  puts(cmd)
+  info = get_output(cmd)
+  if $?.exitstatus != 0
+    raise "Failed to run: #{cmd}"
+  end
+  info = JSON.parse(info)
 
-        test_map.each do |cls_name, version|
-          scenario_name = info[mod_name][cls_name]['scenario']
-          test_map[cls_name] = {version: version, scenario: scenario_name}
-        end
-      end
+  all_tests.each do |test|
+    this_info = info[test.python_mod_name]
+    next unless this_info
+
+    test.test_classes = this_info.map do |cls_name, meta|
+      TestClass.new(name: cls_name, scenario: meta.fetch('scenario'))
+    end
+
+    test.test_classes.each do |cls|
+      puts "#{test.path}::#{cls.name} scenario: #{cls.scenario}"
     end
   end
-=end
-  # TODO scope to options[:tests] if provided
-  pp manifest_data
   exit
 end
 
