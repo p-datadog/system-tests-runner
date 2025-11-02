@@ -28,5 +28,8 @@ for mod_name in sys.argv[1:]:
                         info[mod_name][cls_name] = {
                             'scenario': mark.args[0],
                         }
+            test_methods = [method for method in dir(cls()) if method.startswith('test_')]
+            info[mod_name][cls_name] = info[mod_name].get(cls_name, {})
+            info[mod_name][cls_name]['methods'] = test_methods
 
 print(json.dumps(info))
